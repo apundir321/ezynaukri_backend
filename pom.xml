@@ -8,11 +8,11 @@
 		<version>2.4.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.easynaukri.java</groupId>
-	<artifactId>easynaukriApplication</artifactId>
+	<groupId>com.astroenergy.java</groupId>
+	<artifactId>astroenergyApplication</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>easynaukriApplication</name>
-	<description>Easy naukri online portal</description>
+	<name>astroenergyApplication</name>
+	<description>Astro Energy Kundli Application</description>
 
 	<properties>
 		<java.version>1.8</java.version>
