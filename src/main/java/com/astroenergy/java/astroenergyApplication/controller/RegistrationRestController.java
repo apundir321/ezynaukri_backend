@@ -170,20 +170,4 @@ public class RegistrationRestController {
         return xfHeader.split(",")[0];
     }
     
-    public static void main(String[] args) {
-		UserDto userDto = new UserDto();
-		userDto.setFirstName("Anurag");
-		userDto.setLastName("Pundir");
-		userDto.setEmail("anuragpundir621@gmail.com");
-		userDto.setPassword("OURINDIA12");
-		userDto.setMatchingPassword("OURINDIA12");
-		userDto.setUsing2FA(false);
-		ObjectMapper mapper = new ObjectMapper();
-		try {
-			System.out.println(mapper.writeValueAsString(userDto));
-		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
 }
