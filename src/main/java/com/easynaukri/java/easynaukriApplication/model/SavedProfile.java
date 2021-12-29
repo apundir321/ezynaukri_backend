@@ -20,12 +20,12 @@ public class SavedProfile {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private long id;
 	private Date applicationDate;
-	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "recruiterId")
 	private User recruiterUser;
-	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "applicant_id")
-	private User applicant;
+	private UserProfile applicant;
 	
 	public long getId() {
 		return id;
@@ -40,10 +40,11 @@ public class SavedProfile {
 		this.applicationDate = applicationDate;
 	}
 
-	public User getApplicant() {
+	
+	public UserProfile getApplicant() {
 		return applicant;
 	}
-	public void setApplicant(User applicant) {
+	public void setApplicant(UserProfile applicant) {
 		this.applicant = applicant;
 	}
 	public SavedProfile() {

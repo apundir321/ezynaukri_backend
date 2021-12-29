@@ -5,9 +5,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.validation.Valid;
 
@@ -29,15 +31,17 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.easynaukri.java.easynaukriApplication.model.FilterJob;
+import com.amazonaws.util.StringUtils;
+import com.easynaukri.java.easynaukriApplication.dao.LocationRepository;
 import com.easynaukri.java.easynaukriApplication.model.Job;
 import com.easynaukri.java.easynaukriApplication.model.JobApplication;
 import com.easynaukri.java.easynaukriApplication.model.JobCategory;
+import com.easynaukri.java.easynaukriApplication.model.JobTags;
+import com.easynaukri.java.easynaukriApplication.model.Location;
 import com.easynaukri.java.easynaukriApplication.model.Organization;
 import com.easynaukri.java.easynaukriApplication.model.SavedJobs;
 import com.easynaukri.java.easynaukriApplication.security.UserService;
 import com.easynaukri.java.easynaukriApplication.service.AWSS3Service;
-import com.easynaukri.java.easynaukriApplication.service.AWSS3ServiceImpl;
 import com.easynaukri.java.easynaukriApplication.service.JobApplicationService;
 import com.easynaukri.java.easynaukriApplication.service.JobCategoryService;
 import com.easynaukri.java.easynaukriApplication.service.JobService;
@@ -72,11 +76,15 @@ public class JobController {
 	
 	@Autowired
 	private SavedJobsApplicationService savedRepoService;
+	
+	@Autowired
+	LocationRepository locationRepository;
 
 	@PostMapping("/postJob")
 	public ResponseEntity<JobResponse> postJob(@RequestPart(value = "job") String job, @RequestParam String userId,
 			@RequestParam String organizationId, @RequestParam String categoryId) {
 		try {
+			Set<JobTags> jobTags = new HashSet<>();
 			ObjectMapper mapper = new ObjectMapper();
 			Job inputJob = mapper.readValue(job, Job.class);
 			Optional<JobCategory> category = categoryService.getCategoryById(Integer.parseInt(categoryId));
@@ -84,12 +92,44 @@ public class JobController {
 				return new ResponseEntity<JobResponse>(new JobResponse("Category not found with this id"),
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
-
+			
+//			String tagString = inputJob.getTagString();
+//			if(!StringUtils.isNullOrEmpty(tagString))
+//			{
+//				if(tagString.contains(",")) {
+//				for(String tag : tagString.split(","))
+//				{
+//					JobTags tags = new JobTags();
+//					tags.setName(tag);
+//					jobTags.add(tags);
+//				}
+//			}
+//				else
+//				{
+//					JobTags tags = new JobTags();
+//					tags.setName(tagString);
+//					jobTags.add(tags);
+//				}
+//			}
+//			
+//			inputJob.setTags(jobTags);
+//			
 			Optional<Organization> org = organizationService.getOrgById(Long.parseLong(organizationId));
 			if (!org.isPresent()) {
 				return new ResponseEntity<JobResponse>(new JobResponse("Organization not found with this id"),
 						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
+			
+			
+			Location location =   locationRepository.findByLocation(inputJob.getJobLocation());
+			
+			if(location==null)
+			{
+				Location loc = new Location();
+				loc.setLocation(inputJob.getJobLocation());
+				locationRepository.save(loc);
+			}
+			
 			inputJob.setCategory(category.get());
 			inputJob.setOrganization(org.get());
 			inputJob.setJobPublished(new Date());
@@ -196,18 +236,37 @@ public class JobController {
 
 	}
 	
-	@GetMapping("/getSavedJobs")
-	public ResponseEntity<?> getSavedJobs(@RequestParam String userId) {
-		List<SavedJobs> savedJobs = null;
+	@GetMapping("/getApplicationRecieved")
+	public ResponseEntity<JobResponse> getApplicationRecieved(@RequestParam String userId) {
+		List<JobApplication> appliedJobs = null;
 		try {
-			savedJobs = savedRepoService.getSavedJobs(userId);
+			
+			appliedJobs = jobService.getJobsApplication(userId);
+		} catch (Exception e) {
+			// TODO: handle exception
+			return new ResponseEntity<JobResponse>(
+					new JobResponse("Exception in getting applied Jobs with message=" + e.getMessage()),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<JobResponse>(new JobResponse("Success", appliedJobs), HttpStatus.OK);
+
+	}
+	
+	@GetMapping("/getSavedJobs")
+	public ResponseEntity<?> getSavedJobs(@RequestParam String userId,@RequestParam String pageItem,@RequestParam String pageSize) {
+		Page<SavedJobs> savedJobs = null;
+		try {
+			int pageNumber = pageItem==null?0:Integer.parseInt(pageItem);
+			int pageCount = pageSize==null?10:Integer.parseInt(pageSize); 
+			Pageable paging = PageRequest.of(pageNumber, pageCount);
+			savedJobs = savedRepoService.getSavedJobs(userId,paging);
 		} catch (Exception e) {
 			// TODO: handle exception
 			return new ResponseEntity<GenericResponse>(
 					new GenericResponse("Exception in getting saved jobs with message=" + e.getMessage()),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-		return ResponseEntity.ok(savedJobs);
+		return new ResponseEntity<JobResponse>(new JobResponse("Success", null, savedJobs), HttpStatus.OK);
 
 	}
 	
@@ -231,6 +290,17 @@ public class JobController {
 	public ResponseEntity<GenericResponse> saveJob(@RequestParam("jobId") String jobId,
 			@RequestParam("userId") String userId) {
 		try {
+			SavedJobs savedJob = null;
+			try {
+				savedJob = savedRepoService.getSavedJobDetail(userId, jobId);
+			}catch (Exception e) {
+				// TODO: handle exception
+			}
+			if(savedJob!=null)
+			{
+				return new ResponseEntity<GenericResponse>(new GenericResponse("Job Already Saved"), HttpStatus.ALREADY_REPORTED);
+			}
+			
 			savedRepoService.saveJob(userId, jobId);
 		} catch (Exception e) {
 			return new ResponseEntity<GenericResponse>(
@@ -238,6 +308,18 @@ public class JobController {
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 		return new ResponseEntity<GenericResponse>(new GenericResponse("Successfull job saved"), HttpStatus.CREATED);
+	}
+	
+	@GetMapping("/deleteSaveJob")
+	public ResponseEntity<GenericResponse> deleteSaveJob(@RequestParam("savedJobId") String savedJobId) {
+		try {
+			savedRepoService.deleteSavedJobDetail(savedJobId);
+		} catch (Exception e) {
+			return new ResponseEntity<GenericResponse>(
+					new GenericResponse("Exception in Deleting job with message=" + e.getMessage()),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<GenericResponse>(new GenericResponse("Deleted"), HttpStatus.CREATED);
 	}
 	
 	private File convertMultiPartFileToFile(final MultipartFile multipartFile) {

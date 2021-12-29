@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.easynaukri.java.easynaukriApplication.dao.JobApplicationRepo;
 import com.easynaukri.java.easynaukriApplication.dao.JobCategoryRepo;
+import com.easynaukri.java.easynaukriApplication.dao.JobRepoCustom;
 import com.easynaukri.java.easynaukriApplication.dao.JobRepository;
 import com.easynaukri.java.easynaukriApplication.dao.JobTagsRepo;
 import com.easynaukri.java.easynaukriApplication.dao.SavedJobsRepo;
@@ -43,6 +44,8 @@ public class JobService {
 	
 	@Autowired
 	SavedJobsRepo savedJobsRepo;
+	
+	
 	
 
 	public void addJob(Job job,String userId) throws Exception {
@@ -129,6 +132,18 @@ public class JobService {
 		} catch (Exception e) {
 			throw new GenericException(e.getMessage());
 		}
+	}
+	
+	public List<JobApplication> getJobsApplication(String userId) throws Exception {
+		try {
+			Optional<User> user = userRepository.findById(Long.parseLong(userId));
+			if(user.isPresent()) {
+			return jobRepository.findApplicationRecieved(user.get());
+			}
+		} catch (Exception e) {
+			throw new GenericException(e.getMessage());
+		}
+		return null;
 	}
 	
 	public Page<JobApplication> getAppliedJobs(String userId,Pageable page)throws Exception

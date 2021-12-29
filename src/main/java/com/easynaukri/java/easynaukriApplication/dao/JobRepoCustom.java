@@ -7,8 +7,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Repository;
 
 import com.easynaukri.java.easynaukriApplication.model.Job;
+import com.easynaukri.java.easynaukriApplication.model.JobApplication;
 import com.easynaukri.java.easynaukriApplication.model.Organization;
 import com.easynaukri.java.easynaukriApplication.model.SavedJobs;
+import com.easynaukri.java.easynaukriApplication.model.User;
 
 @Repository
 public interface JobRepoCustom {
@@ -18,6 +20,8 @@ public interface JobRepoCustom {
 	Page<Job> findJobsByTags(List<String> tags,Map<String, Object> searchCriteria);
 	
 	public List<Organization> findOrgsByCriteria(Map<String, Object> searchCriteria);
+
+	List<JobApplication> findApplicationRecieved(User postedBy);
 	
 	
 	

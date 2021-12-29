@@ -35,7 +35,7 @@ public class RecruiterController {
 	}
 	
 	@GetMapping("/saveProfile")
-	public ResponseEntity<GenericResponse> saveJob(@RequestParam("userId") String userId,
+	public ResponseEntity<GenericResponse> saveProfile(@RequestParam("userId") String userId,
 			@RequestParam("recruiterId") String recruiterId) {
 		try {
 			userProfileService.saveProfile(userId, recruiterId);
@@ -44,7 +44,19 @@ public class RecruiterController {
 					new GenericResponse("Exception in saving job with message=" + e.getMessage()),
 					HttpStatus.INTERNAL_SERVER_ERROR);
 		}
-		return new ResponseEntity<GenericResponse>(new GenericResponse("Successfull Profile saved"), HttpStatus.CREATED);
+		return new ResponseEntity<GenericResponse>(new GenericResponse("Successfully Profile saved"), HttpStatus.CREATED);
+	}
+	
+	@GetMapping("/deleteSavedProfile")
+	public ResponseEntity<GenericResponse> deleteSavedProfile(@RequestParam("savedProfileId") String savedProfileId) {
+		try {
+			userProfileService.deleteSavedProfile(Long.parseLong(savedProfileId));
+		} catch (Exception e) {e.printStackTrace();
+			return new ResponseEntity<GenericResponse>(
+					new GenericResponse("Exception in deleting saved Profile with message=" + e.getMessage()),
+					HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<GenericResponse>(new GenericResponse("Successfull Profile deleted"), HttpStatus.CREATED);
 	}
 
 }

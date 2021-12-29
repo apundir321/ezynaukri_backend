@@ -30,6 +30,8 @@ public class RecruiterProfile {
 	private String workExperience;
 	private String currentJobRole;
 	private String currentOrganization;
+	private String currentLocation;
+	private String profilePic;
 	
 	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
 	@JoinColumn(name = "category_id")
@@ -144,6 +146,22 @@ public class RecruiterProfile {
 
 	public void setPrefferedLocation(Set<Location> prefferedLocation) {
 		this.prefferedLocation = prefferedLocation;
+	}
+
+	public String getCurrentLocation() {
+		return currentLocation;
+	}
+
+	public void setCurrentLocation(String currentLocation) {
+		this.currentLocation = currentLocation;
+	}
+
+	public String getProfilePic() {
+		return profilePic;
+	}
+
+	public void setProfilePic(String profilePic) {
+		this.profilePic = profilePic;
 	}
 
 }

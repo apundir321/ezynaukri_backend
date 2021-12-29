@@ -32,6 +32,10 @@ public class UserProfile {
 	private String expectedCtc;
 	private String currentJobRole;
 	private String currentOrganization;
+	private String profilePicName;
+	private String currentLocation;
+	private String resume;
+	private String phoneNo;
 
 	@ManyToMany(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
 	@JoinTable(name = "profile_skills", joinColumns = { @JoinColumn(name = "profile_id") }, inverseJoinColumns = {
@@ -182,6 +186,38 @@ public class UserProfile {
 
 	public void setCurrentOrganization(String currentOrganization) {
 		this.currentOrganization = currentOrganization;
+	}
+
+	public String getProfilePicName() {
+		return profilePicName;
+	}
+
+	public void setProfilePicName(String profilePicName) {
+		this.profilePicName = profilePicName;
+	}
+
+	public String getResume() {
+		return resume;
+	}
+
+	public void setResume(String resume) {
+		this.resume = resume;
+	}
+
+	public String getCurrentLocation() {
+		return currentLocation;
+	}
+
+	public void setCurrentLocation(String currentLocation) {
+		this.currentLocation = currentLocation;
+	}
+
+	public String getPhoneNo() {
+		return phoneNo;
+	}
+
+	public void setPhoneNo(String phoneNo) {
+		this.phoneNo = phoneNo;
 	}
 
 }

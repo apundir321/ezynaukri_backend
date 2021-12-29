@@ -1,6 +1,9 @@
 package com.easynaukri.java.easynaukriApplication.controller;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,10 +42,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.easynaukri.java.easynaukriApplication.dao.UserProfileRepositoryImpl;
@@ -140,7 +145,7 @@ public class UserController {
 	}
 	
 	@RequestMapping(value = "/saveRecruiterProfile", method = RequestMethod.POST)
-	public ResponseEntity<?> saveProfile(@RequestParam String userId,@RequestBody RecruiterProfile userProfile,@RequestParam String categoryId)
+	public ResponseEntity<?> saveProfile(@RequestParam String userId,@RequestBody RecruiterProfile userProfile,@RequestParam(required = false) String categoryId)
 			throws Exception {
 		RecruiterProfile profile = null;
 		try {
@@ -157,7 +162,7 @@ public class UserController {
 			throws Exception {
 		UserProfile profile = null;
 		try {
-			profile = userProfileService.getUserProfile(userId);
+			profile = userProfileService.getUser(userId).getUserProfile();
 		} catch (Exception e) {
 			return new ResponseEntity<GenericResponse>(new GenericResponse("Exception in getting job profile="+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);
 		}
@@ -196,15 +201,15 @@ public class UserController {
 	{
 		return userProfileRepo.getUserProfiles("Chennai");
 	}
-	@GetMapping("/getprofilePic/{profilePicName}")
-	public ResponseEntity<byte[]> downloadFile(@PathVariable String profilePicName) {
-		ByteArrayOutputStream downloadInputStream = awsService.downloadFile(profilePicName);
-	
-		return ResponseEntity.ok()
-					.contentType(MediaType.IMAGE_PNG)
-					.header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=\"" + profilePicName + "\"")
-					.body(downloadInputStream.toByteArray());	
-	}
+//	@GetMapping("/getprofilePic/{profilePicName}")
+//	public ResponseEntity<byte[]> downloadFile(@PathVariable String profilePicName) {
+//		ByteArrayOutputStream downloadInputStream = awsService.downloadFile(profilePicName);
+//	
+//		return ResponseEntity.ok()
+//					.contentType(MediaType.IMAGE_PNG)
+//					.header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=\"" + profilePicName + "\"")
+//					.body(downloadInputStream.toByteArray());	
+//	}
 	
 	@GetMapping("getLocations")
 	public ResponseEntity<?> getLocations()
@@ -311,6 +316,23 @@ public class UserController {
 		
 	}
 	
+	@RequestMapping(value = "/getRecruiterProfileByProfileId", method = RequestMethod.GET)
+	public ResponseEntity<?> getRecruiterProfileByProfileId(@RequestParam String recruiterId)
+			throws Exception {
+		User user = null;
+		try {
+			user = userService.getRecruiter(recruiterId);
+			if(user==null)
+			{
+				return new ResponseEntity<GenericResponse>(new GenericResponse("No profile found"),HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+		} catch (Exception e) {
+			return new ResponseEntity<GenericResponse>(new GenericResponse("Exception in fetching users="+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<User>(user,HttpStatus.OK);
+		
+	}
+	
 	@PostMapping("/filterRecruiterProfiles")
 	public ResponseEntity<?> filterRecruiterProfiles(@RequestBody String job) {
 		List<RecruiterProfile> recruiterProfiles = null;
@@ -385,21 +407,165 @@ public class UserController {
 		
 	}
 	
-	public static void main(String[] args) {
-		WorkExperience experience = new WorkExperience();
-		experience.setCompanyName("Flybunch");
-		experience.setJobDesignation("Software developer");
-		experience.setLocation("gurgaon");
-		experience.setStartDate(new Date());
-		experience.setEndDate(new Date());
-		
-		ObjectMapper mapper = new ObjectMapper();
+	@RequestMapping(value = "/updateRecruiterTags", method = RequestMethod.POST)
+	public ResponseEntity<?> updateRecruiterTags(@RequestParam String userId,@RequestBody List<String> tags)
+			throws Exception {
+		RecruiterProfile profile = null;
+		Set<Skills> skills = new HashSet<>();
 		try {
-			System.out.println(mapper.writeValueAsString(experience));
-		} catch (JsonProcessingException e) {
+			for(String tag :tags) {
+				Skills skill = new Skills();
+				skill.setName(tag);
+				skills.add(skill);
+			}
+			profile = userProfileService.updateRecruiterTags(skills, userId);
+		} catch (Exception e) {
+			return new ResponseEntity<GenericResponse>(new GenericResponse("Exception in adding education="+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<RecruiterProfile>(profile,HttpStatus.CREATED);
+		
+	}
+	
+	
+	@RequestMapping(value = "/updateProfilePic", method = RequestMethod.POST)
+	public ResponseEntity<?> updateProfilePic(@RequestPart(value= "file" ,required = true) final MultipartFile multipartFile,@RequestParam String userId)
+			throws Exception {
+		UserProfile profile = null;
+		File file = null;
+		try {
+			profile = userProfileService.getUser(userId).getUserProfile();
+			awsService.uploadFile(multipartFile, String.valueOf(profile.getId()));
+			profile.setProfilePicName(multipartFile.getOriginalFilename());
+			userProfileService.updateUserProfilePic(profile);
+		} catch (Exception e) {
+			return new ResponseEntity<GenericResponse>(new GenericResponse("Exception in updating profile pic"+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<UserProfile>(profile,HttpStatus.OK);
+		
+	}
+	
+	@RequestMapping(value = "/updateRecruiterProfilePic", method = RequestMethod.POST)
+	public ResponseEntity<?> updateRecruiterProfilePic(@RequestPart(value= "file" ,required = true) final MultipartFile multipartFile,@RequestParam String userId)
+			throws Exception {
+		RecruiterProfile profile = null;
+		File file = null;
+		try {
+			profile = userProfileService.getRecruiterUserProfile(userId);
+			awsService.uploadFile(multipartFile, String.valueOf(profile.getId()));
+			profile.setProfilePic(multipartFile.getOriginalFilename());
+			userProfileService.updateRecruiterUserProfilePic(profile);
+		} catch (Exception e) {
+			return new ResponseEntity<GenericResponse>(new GenericResponse("Exception in updating profile pic"+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<RecruiterProfile>(profile,HttpStatus.OK);
+		
+	}
+	
+	@RequestMapping(value = "/updateResume", method = RequestMethod.POST)
+	public ResponseEntity<?> updateResume(@RequestPart(value= "file" ,required = true) final MultipartFile multipartFile,@RequestParam String userId)
+			throws Exception {
+		UserProfile profile = null;
+		File file = null;
+		try {
+			profile = userProfileService.getUser(userId).getUserProfile();
+			awsService.uploadFile(multipartFile, String.valueOf(profile.getId()));
+			profile.setResume(multipartFile.getOriginalFilename());
+			userProfileService.updateUserProfilePic(profile);
+		} catch (Exception e) {
+			return new ResponseEntity<GenericResponse>(new GenericResponse("Exception in Uploading resume"+e.getMessage()),HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<UserProfile>(profile,HttpStatus.OK);
+		
+	}
+	
+	
+	private File convertMultiPartFileToFile(final MultipartFile multipartFile) throws Exception {
+		final File file = new File(multipartFile.getOriginalFilename());
+		try (final FileOutputStream outputStream = new FileOutputStream(file)) {
+			outputStream.write(multipartFile.getBytes());
+		} catch (final IOException ex) {
+			throw ex;
+		}
+		return file;
+	}
+	
+	@GetMapping("/getProfilePic/{name}/{userId}")
+	public ResponseEntity<byte[]> downloadFileByUserProfileId(@PathVariable String name,@PathVariable String userId ) throws Exception {
+		UserProfile profile = null;
+		ByteArrayOutputStream downloadInputStream = null;
+		profile = userProfileService.getUser(userId).getUserProfile();
+		try {
+			downloadInputStream = awsService.downloadFile(name, profile);
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+		return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(downloadInputStream.toByteArray());
 	}
+	
+	@GetMapping("/getRecruiterProfilePic/{name}/{userId}")
+	public ResponseEntity<byte[]> getRecruiterProfilePic(@PathVariable String name,@PathVariable String userId ) throws Exception {
+		RecruiterProfile profile = null;
+		ByteArrayOutputStream downloadInputStream = null;
+		profile = userProfileService.getRecruiterUserProfile(userId);
+		try {
+			downloadInputStream = awsService.downloadRecruiterFile(name, profile);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(downloadInputStream.toByteArray());
+	}
+	
+	@GetMapping("/getProfilePicByProfileId/{name}/{userProfileId}")
+	public ResponseEntity<byte[]> getProfilePicByProfileId(@PathVariable String name,@PathVariable String userProfileId ) throws Exception {
+		UserProfile profile = null;
+		ByteArrayOutputStream downloadInputStream = null;
+		profile = userProfileService.getUserProfileById(userProfileId);
+		try {
+			downloadInputStream = awsService.downloadFile(name, profile);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return ResponseEntity.ok()
+                .contentType(contentType(name))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + "\"")
+                .body(downloadInputStream.toByteArray());
+	}
+	
+	@GetMapping("/getProfilePic/{name}")
+	public ResponseEntity<byte[]> downloadGenericFileByUserProfileId(@PathVariable String name ) throws Exception {
+		UserProfile profile = null;
+		ByteArrayOutputStream downloadInputStream = null;
+		
+		try {
+			downloadInputStream = awsService.downloadFile(name);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(downloadInputStream.toByteArray());
+	}
+	
+	
+	private MediaType contentType(String filename) {
+        String[] fileArrSplit = filename.split("\\.");
+        String fileExtension = fileArrSplit[fileArrSplit.length - 1];
+        switch (fileExtension) {
+            case "txt":
+                return MediaType.TEXT_PLAIN;
+            case "png":
+                return MediaType.IMAGE_PNG;
+            case "jpg":
+                return MediaType.IMAGE_JPEG;
+            default:
+                return MediaType.APPLICATION_OCTET_STREAM;
+        }
+    }
 
 }

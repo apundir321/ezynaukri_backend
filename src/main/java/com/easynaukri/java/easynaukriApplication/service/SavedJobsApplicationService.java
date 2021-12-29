@@ -1,22 +1,19 @@
 package com.easynaukri.java.easynaukriApplication.service;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
-import javax.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import com.easynaukri.java.easynaukriApplication.dao.JobApplicationRepo;
-import com.easynaukri.java.easynaukriApplication.dao.JobRepoCustom;
+import com.amazonaws.services.appstream.model.Application;
 import com.easynaukri.java.easynaukriApplication.dao.JobRepository;
 import com.easynaukri.java.easynaukriApplication.dao.SavedJobsRepo;
 import com.easynaukri.java.easynaukriApplication.dao.UserRepository;
 import com.easynaukri.java.easynaukriApplication.error.GenericException;
 import com.easynaukri.java.easynaukriApplication.model.Job;
-import com.easynaukri.java.easynaukriApplication.model.JobApplication;
 import com.easynaukri.java.easynaukriApplication.model.SavedJobs;
 import com.easynaukri.java.easynaukriApplication.model.User;
 
@@ -48,6 +45,7 @@ public class SavedJobsApplicationService {
 			application.setJob(job.get());
 			application.setApplicant(user.get());
 			application.setApplicationDate(new Date());
+			application.setStatus("open");
 			savedJobsRepo.save(application);
 		}
 		else
@@ -61,12 +59,12 @@ public class SavedJobsApplicationService {
 		
 	}
 	
-	public List<SavedJobs> getSavedJobs(String userId)throws Exception
+	public Page<SavedJobs> getSavedJobs(String userId,Pageable page)throws Exception
 	{
 		try {
 			Optional<User> user = userRepository.findById(Long.parseLong(userId));
 			if(user.isPresent()) {
-			return savedJobsRepo.findAllByApplicant(user.get());
+			return savedJobsRepo.findAllByApplicantAndStatus(user.get(),"open",page);
 			}
 		}catch (Exception e) {
 			throw new GenericException(e.getMessage());
@@ -78,6 +76,18 @@ public class SavedJobsApplicationService {
 	{
 		try {
 			return savedJobsRepo.findSavedJobByUserIdAndJobId(userId, jobId);
+			
+		}catch (Exception e) {
+			throw new GenericException(e.getMessage());
+		}
+	}
+	
+	public void deleteSavedJobDetail(String savedJobId)throws Exception
+	{
+		try {
+			SavedJobs savedJob = savedJobsRepo.findById(Long.parseLong(savedJobId)).get();
+			savedJob.setStatus("deleted");
+			savedJobsRepo.save(savedJob);
 			
 		}catch (Exception e) {
 			throw new GenericException(e.getMessage());

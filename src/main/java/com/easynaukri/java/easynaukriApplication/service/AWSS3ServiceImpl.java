@@ -24,7 +24,10 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.easynaukri.java.easynaukriApplication.dao.UserRepository;
 import com.easynaukri.java.easynaukriApplication.error.GenericException;
+import com.easynaukri.java.easynaukriApplication.model.RecruiterProfile;
 import com.easynaukri.java.easynaukriApplication.model.User;
+import com.easynaukri.java.easynaukriApplication.model.UserProfile;
+
 
 @Service
 public class AWSS3ServiceImpl implements AWSS3Service {
@@ -47,7 +50,7 @@ public class AWSS3ServiceImpl implements AWSS3Service {
 		LOGGER.info("File upload in progress.");
 		try {
 			final File file = convertMultiPartFileToFile(multipartFile);
-			uploadFileToS3Bucket(bucketName, file,userId);
+			uploadFileToS3Bucket(bucketName, file,Integer.parseInt(userId));
 			LOGGER.info("File upload is completed.");
 			file.delete();	// To remove the file locally created in the project folder.
 		} catch (final AmazonServiceException ex) {
@@ -80,20 +83,17 @@ public class AWSS3ServiceImpl implements AWSS3Service {
 		return file;
 	}
 
-	private void uploadFileToS3Bucket(final String bucketName, final File file,String userId)throws Exception {
-		Optional<User> user = userRepository.findById(Long.parseLong(userId));
-		if(user.isPresent()) {
-			final String uniqueFileName = user.get().getId()+"_"+ file.getName();
-			LOGGER.info("Uploading file with name= " + uniqueFileName);
-			final PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, uniqueFileName, file);
-			amazonS3.putObject(putObjectRequest);
-		}
-		else
-		{
-			throw new GenericException("User is not present with this id");
-		}
+	private void uploadFileToS3Bucket(final String bucketName, final File file,int userId)throws Exception {
 		
-	}
+		
+		final String uniqueFileName = userId+"/"+userId+"_"+ file.getName();
+		LOGGER.info("Uploading file with name= " + uniqueFileName);
+		final PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, uniqueFileName, file);
+		amazonS3.putObject(putObjectRequest);
+	
+	
+}
+
 	
 	private void uploadGenericFileToS3Bucket(final String bucketName, final File file)throws Exception {
 		
@@ -102,6 +102,69 @@ public class AWSS3ServiceImpl implements AWSS3Service {
 			final PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, uniqueFileName, file);
 			amazonS3.putObject(putObjectRequest);
 		
+	}
+	
+	@Override
+	public ByteArrayOutputStream downloadFile(String keyName,UserProfile profile) {
+		try {
+            S3Object s3object = amazonS3.getObject(new GetObjectRequest(bucketName,profile.getId()+"/"+profile.getId()+"_"+ keyName));
+            
+            InputStream is = s3object.getObjectContent();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            int len;
+            byte[] buffer = new byte[4096];
+            while ((len = is.read(buffer, 0, buffer.length)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            return baos;
+		} catch (IOException ioe) {
+			System.out.println("IOException: " + ioe.getMessage());
+        } catch (AmazonServiceException ase) {
+        	System.out.println("sCaught an AmazonServiceException from GET requests, rejected reasons:");
+        	System.out.println("Error Message:    " + ase.getMessage());
+        	System.out.println("HTTP Status Code: " + ase.getStatusCode());
+        	System.out.println("AWS Error Code:   " + ase.getErrorCode());
+        	System.out.println("Error Type:       " + ase.getErrorType());
+			
+			throw ase;
+        } catch (AmazonClientException ace) {
+        	
+            throw ace;
+        }
+		
+		return null;
+	}
+	
+	
+	@Override
+	public ByteArrayOutputStream downloadRecruiterFile(String keyName,RecruiterProfile profile) {
+		try {
+            S3Object s3object = amazonS3.getObject(new GetObjectRequest(bucketName,profile.getId()+"/"+profile.getId()+"_"+ keyName));
+            
+            InputStream is = s3object.getObjectContent();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            int len;
+            byte[] buffer = new byte[4096];
+            while ((len = is.read(buffer, 0, buffer.length)) != -1) {
+                baos.write(buffer, 0, len);
+            }
+            return baos;
+		} catch (IOException ioe) {
+			System.out.println("IOException: " + ioe.getMessage());
+        } catch (AmazonServiceException ase) {
+        	System.out.println("sCaught an AmazonServiceException from GET requests, rejected reasons:");
+        	System.out.println("Error Message:    " + ase.getMessage());
+        	System.out.println("HTTP Status Code: " + ase.getStatusCode());
+        	System.out.println("AWS Error Code:   " + ase.getErrorCode());
+        	System.out.println("Error Type:       " + ase.getErrorType());
+			
+			throw ase;
+        } catch (AmazonClientException ace) {
+        	
+            throw ace;
+        }
+		
+		return null;
 	}
 	
 	@Override
@@ -116,7 +179,6 @@ public class AWSS3ServiceImpl implements AWSS3Service {
             while ((len = is.read(buffer, 0, buffer.length)) != -1) {
                 baos.write(buffer, 0, len);
             }
-            
             return baos;
 		} catch (IOException ioe) {
 			System.out.println("IOException: " + ioe.getMessage());

@@ -20,12 +20,13 @@ public class JobApplication {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private long id;
 	private Date applicationDate;
-	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "job_id")
 	private Job job;
-	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "applicant_id")
 	private User applicant;
+	
 	
 	public long getId() {
 		return id;

@@ -8,19 +8,31 @@ import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 
 import com.easynaukri.java.easynaukriApplication.model.Job;
+import com.easynaukri.java.easynaukriApplication.model.JobApplication;
 
 public class JobResponse {
     private String message;
     private String error;
     private List<Job> jobs;
     private Page<?> pagesJob;
+    private List<JobApplication> jobApplication;
     private Job job;
     public JobResponse(final String message) {
         super();
         this.message = message;
     }
 
-    public JobResponse(String message, String error, List<Job> jobs) {
+    public List<JobApplication> getJobApplication() {
+		return jobApplication;
+	}
+
+	public void setJobApplication(List<JobApplication> jobApplication) {
+		this.jobApplication = jobApplication;
+	}
+
+	
+
+	public JobResponse(String message, String error, List<Job> jobs) {
 		super();
 		this.message = message;
 		this.error = error;
@@ -32,6 +44,12 @@ public class JobResponse {
 		this.message = message;
 		this.error = error;
 		this.pagesJob = jobs;
+	}
+
+	public JobResponse(String message, List<JobApplication> jobApplication) {
+		super();
+		this.message = message;
+		this.jobApplication = jobApplication;
 	}
 
 	public JobResponse(final String message, final String error) {

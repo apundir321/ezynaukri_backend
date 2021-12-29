@@ -27,6 +27,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.easynaukri.java.easynaukriApplication.model.Job;
+import com.easynaukri.java.easynaukriApplication.model.JobApplication;
 import com.easynaukri.java.easynaukriApplication.model.JobCategory;
 import com.easynaukri.java.easynaukriApplication.model.Organization;
 import com.easynaukri.java.easynaukriApplication.model.SavedJobs;
@@ -45,6 +46,9 @@ public class JobRepoCustomImpl implements JobRepoCustom {
 	
 	@Autowired
 	OrganizationRepository organizationRepo;
+	
+	@Autowired
+	JobApplicationRepo jobApplicationRepo;
 	
 	@Autowired
 	UserRepository userRepo;
@@ -110,20 +114,29 @@ public class JobRepoCustomImpl implements JobRepoCustom {
 		    List<Predicate> predicates = new ArrayList<>();
 		    
 		    if (searchCriteria.get("category") != null) {
-		    	Optional<JobCategory> category = jobCategoryRepo.findById(Integer.parseInt((String)searchCriteria.get("category")));
+		    	Optional<JobCategory> category = jobCategoryRepo.findById((Integer)searchCriteria.get("category"));
 		        predicates.add(cb.equal(org.get("category"), category.get()));
 		    }
 		    if (searchCriteria.get("location") != null) {
 		    	
-		    	Expression<String> exp = org.get("location");
-		    	Predicate predicate = exp.in(searchCriteria.get("location"));
-		        predicates.add(predicate);
+//		    	Expression<String> exp = org.get("location");
+//		    	Predicate predicate = exp.in(searchCriteria.get("location"));
+//		        predicates.add(predicate);
+		    	 predicates.add(cb.equal(org.get("location"), searchCriteria.get("location")));
 		    }
 		    cq.where(predicates.toArray(new Predicate[0]));
 
 		    return em.createQuery(cq).getResultList();
 	}
-
+	
+	@Override
+	public List<JobApplication> findApplicationRecieved(User postedBy)
+	{
+		String qlString = "SELECT DISTINCT jobApplication FROM JobApplication jobApplication JOIN jobApplication.job job WHERE job.postedBy = (:postedByUser)"; 
+		TypedQuery<JobApplication> q = em.createQuery(qlString, JobApplication.class);
+		q.setParameter("postedByUser",postedBy);
+		return q.getResultList();
+	}
 
 	@Override
 	public Page<Job> findJobsByTags(List<String> tags,Map<String, Object> searchCriteria) {
@@ -176,16 +189,16 @@ public class JobRepoCustomImpl implements JobRepoCustom {
 			 q.setParameter("locations", searchCriteria.get("locations"));
 		 }
 		 if (searchCriteria.get("category") != null) {
-		    	Optional<JobCategory> category = jobCategoryRepo.findById(Integer.parseInt((String)searchCriteria.get("category")));
+		    	Optional<JobCategory> category = jobCategoryRepo.findById((Integer)searchCriteria.get("category"));
 		    	q.setParameter("categoryId",category.get() );
 		    }
 		    if (searchCriteria.get("organization") != null) {
-		    	Optional<Organization> org = organizationRepo.findById(Long.parseLong((String)searchCriteria.get("organization")));
+		    	Optional<Organization> org = organizationRepo.findById((Long)searchCriteria.get("organization"));
 		    	q.setParameter("organizationId",org.get() );
 		    }
 		 	if(searchCriteria.get("minExperience") != null)
 		    {
-			 q.setParameter("mExperience",Integer.parseInt((String)searchCriteria.get("minExperience")) );
+			 q.setParameter("mExperience",searchCriteria.get("minExperience") );
 		    }
 		 	else
 		    {
@@ -193,18 +206,18 @@ public class JobRepoCustomImpl implements JobRepoCustom {
 		    }
 		    if(searchCriteria.get("maxExperience") != null)
 		    {
-		    	q.setParameter("maxExperience",Integer.parseInt((String)searchCriteria.get("maxExperience")) );
+		    	q.setParameter("maxExperience",searchCriteria.get("maxExperience") );
 		    }else
 		    {
 		    	q.setParameter("maxExperience",Integer.MAX_VALUE );
 		    }
 		    if(searchCriteria.get("minSalary") != null)
 		    {
-		    	q.setParameter("minSalary",Integer.parseInt((String)searchCriteria.get("minSalary")) );
+		    	q.setParameter("minSalary",searchCriteria.get("minSalary") );
 		    }
 		    if(searchCriteria.get("maxSalary") != null)
 		    {
-		    	q.setParameter("maxSalary",Integer.parseInt((String)searchCriteria.get("maxSalary")) );
+		    	q.setParameter("maxSalary",searchCriteria.get("maxSalary"));
 		    }
 		    if(searchCriteria.get("jobPublished") != null)
 		    {

@@ -46,7 +46,7 @@ public class Job {
 	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
 	@JoinColumn(name = "category_id")
 	private JobCategory category;	
-	
+	private String tagString;
 	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
 	@JoinColumn(name = "organization_id")
 	private Organization organization;
@@ -181,6 +181,12 @@ public class Job {
 	}
 	public void setEndDate(Date endDate) {
 		this.endDate = endDate;
+	}
+	public String getTagString() {
+		return tagString;
+	}
+	public void setTagString(String tagString) {
+		this.tagString = tagString;
 	}
 
 	

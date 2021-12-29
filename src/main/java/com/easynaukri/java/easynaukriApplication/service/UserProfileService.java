@@ -96,6 +96,8 @@ public class UserProfileService {
 							location.setId(fetchedLocation.getId());
 						}
 					}
+					profile.setProfilePicName(savedUserProfile.getProfilePicName());
+					profile.setResume(savedUserProfile.getResume());
 					return userProfileRepository.save(profile);
 				}
 
@@ -103,6 +105,25 @@ public class UserProfileService {
 				throw new GenericException("User id is not available for this ID=" + userId);
 			}
 
+		} catch (Exception e) {
+			// TODO: handle exception
+			throw new GenericException(e.getMessage());
+		}
+	}
+	
+	
+	public UserProfile updateUserProfilePic(UserProfile profile) throws Exception {
+		try {
+			return userProfileRepository.save(profile);
+		} catch (Exception e) {
+			// TODO: handle exception
+			throw new GenericException(e.getMessage());
+		}
+	}
+	
+	public RecruiterProfile updateRecruiterUserProfilePic(RecruiterProfile profile) throws Exception {
+		try {
+			return recruiterProfileRepository.save(profile);
 		} catch (Exception e) {
 			// TODO: handle exception
 			throw new GenericException(e.getMessage());
@@ -124,36 +145,9 @@ public class UserProfileService {
 					 profile.setFirstName(savedUserProfile.getFirstName());
 					 profile.setLastName(savedUserProfile.getLastName());
 					 profile.setEmail(savedUserProfile.getEmail());
-					for(Skills skill : profile.getTags())
-					{
-						Skills fetchedSkill = skillsRepository.findByName(skill.getName());
-						if(fetchedSkill==null)
-						{
-							Skills savedSkill = skillsRepository.save(skill);
-							skill.setId(savedSkill.getId());
-						}
-						else
-						{
-							skill.setId(fetchedSkill.getId());
-						}
-					}
-					
-					for(Location location : profile.getPrefferedLocation())
-					{
-						Location fetchedLocation = locationRepository.findByLocation(location.getLocation());
-						if(fetchedLocation==null)
-						{
-							Location savedLocation = locationRepository.save(location);
-							location.setId(savedLocation.getId());
-						}
-						else
-						{
-							location.setId(fetchedLocation.getId());
-						}
-					}
-					Optional<JobCategory> category = jobCategoryRepo.findById(Integer.parseInt(categoryId));
-			        profile.setCategory(category.get());
-		       
+					 profile.setTags(savedUserProfile.getTags());
+					 profile.setPrefferedLocation(savedUserProfile.getPrefferedLocation());
+					 profile.setCategory(savedUserProfile.getCategory());
 					return recruiterProfileRepository.save(profile);
 				}
 
@@ -172,10 +166,61 @@ public class UserProfileService {
 	{
 		try {
 			
+			Optional<UserProfile> user = userProfileRepository.findById(Integer.parseInt(userId));
+			if(user.isPresent())
+			{
+				UserProfile profile = user.get();
+				if(profile==null)
+				{
+					throw new GenericException("Profile is not yet completed by the user");
+				}
+				return profile;
+			}
+			else
+			{
+				throw new GenericException("Didn't find any user by this Id");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			throw new GenericException(e.getMessage());
+		}
+	}
+	
+	public RecruiterProfile getRecruiterUserProfile(String userId)throws Exception
+	{
+		try {
+			
 			Optional<User> user = userRepository.findById(Long.parseLong(userId));
 			if(user.isPresent())
 			{
-				UserProfile profile = user.get().getUserProfile();
+				RecruiterProfile profile = user.get().getRecruiterProfile();
+				if(profile==null)
+				{
+					throw new GenericException("Profile is not yet completed by the user");
+				}
+				return profile;
+			}
+			else
+			{
+				throw new GenericException("Didn't find any user by this Id");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			throw new GenericException(e.getMessage());
+		}
+	}
+	
+	
+	public UserProfile getUserProfileById(String userProfileId)throws Exception
+	{
+		try {
+			
+			Optional<UserProfile> userProfile = userProfileRepository.findById(Integer.parseInt(userProfileId));
+			if(userProfile.isPresent())
+			{
+				UserProfile profile = userProfile.get();
 				if(profile==null)
 				{
 					throw new GenericException("Profile is not yet completed by the user");
@@ -196,12 +241,7 @@ public class UserProfileService {
 	public List<Location> getLocations() throws Exception{
 		try {
 			List<Location> locations = (List<Location>) locationRepository.findAll();
-			if(locations!=null && locations.size()>0)
-			{
-				return locations;
-			} else {
-				throw new GenericException("Unable to find locations");
-			}
+			return locations;
 
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -299,6 +339,45 @@ public class UserProfileService {
 		}
 	}
 	
+	public RecruiterProfile updateRecruiterTags(Set<Skills> skills,String userId) throws Exception{
+		try {
+			
+			Optional<User> user = userRepository.findById(Long.parseLong(userId));
+			if(user.isPresent())
+			{
+				RecruiterProfile profile = user.get().getRecruiterProfile();
+				if(profile==null)
+				{
+					throw new GenericException("Profile is not yet completed by the user");
+				}
+				for(Skills skill : skills)
+				{
+					Skills fetchedSkill = skillsRepository.findByName(skill.getName());
+					if(fetchedSkill==null)
+					{
+						Skills savedSkill = skillsRepository.save(skill);
+						skill.setId(savedSkill.getId());
+					}
+					else
+					{
+						skill.setId(fetchedSkill.getId());
+					}
+				}
+				
+				profile.setTags(skills);
+				return recruiterProfileRepository.save(profile);
+			}
+			else
+			{
+				throw new GenericException("Didn't find any user by this Id");
+			}
+			
+		} catch (Exception e) {
+			// TODO: handle exception
+			throw new GenericException(e.getMessage());
+		}
+	}
+	
 	public User getUser(String userId) throws Exception{
 		try {
 			
@@ -368,13 +447,18 @@ public class UserProfileService {
 	public void saveProfile(String userId,String recruiterId)throws Exception
 	{
 		try {
-		Optional<User> user = userRepository.findById(Long.parseLong(userId));
+		Optional<UserProfile> user = userProfileRepository.findById(Integer.parseInt(userId));
 		if(user.isPresent())
 		{
 			Optional<User> recruiter = userRepository.findById(Long.parseLong(recruiterId));
 			if(!recruiter.isPresent())
 			{
 				throw new GenericException("Recuiter Id not found");
+			}
+			SavedProfile savedProfile = savedProfileRepo.findByRecruiterUserAndApplicant(recruiter.get(),user.get());
+			if(savedProfile!=null)
+			{
+				throw new GenericException("Profile Already Saved!");
 			}
 			SavedProfile profile = new SavedProfile();
 			profile.setApplicant(user.get());
@@ -391,5 +475,15 @@ public class UserProfileService {
 		}
 		
 		
+	}
+	
+	
+	public void deleteSavedProfile(long id) throws GenericException
+	{
+		try {
+			savedProfileRepo.deleteById(id);
+		} catch (Exception e) {
+			throw new GenericException("Unable to delete savedProfile with message="+e.getMessage());
+		}
 	}
 }

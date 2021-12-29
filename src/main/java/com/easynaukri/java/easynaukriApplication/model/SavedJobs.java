@@ -20,12 +20,14 @@ public class SavedJobs {
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private long id;
 	private Date applicationDate;
-	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "job_id")
 	private Job job;
-	@ManyToOne(fetch = FetchType.EAGER,cascade = CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "applicant_id")
 	private User applicant;
+	
+	private String status;
 	
 	public long getId() {
 		return id;
@@ -54,6 +56,12 @@ public class SavedJobs {
 	public SavedJobs() {
 		super();
 		// TODO Auto-generated constructor stub
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
 	}
 	
 	
